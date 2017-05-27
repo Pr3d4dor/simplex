@@ -1,4 +1,5 @@
 #include "gauss.h"
+#include <stdio.h>
 #include <stdlib.h>
 
 float modulo(float x){
@@ -7,11 +8,22 @@ float modulo(float x){
   return x;
 }
 
-float *gauss(size_t ordem, float **matriz, float b[ordem]) {
+float *gauss(size_t ordem, float **matrizOriginal, float bOriginal[ordem]) {
     int n = ordem;
 	float mult = 0, temp = 0;
+	float matriz[ordem][ordem];
+	float b[ordem];
 	
 	float *vetorResposta =  malloc(sizeof (float) * ordem);
+	
+	// Copiar para vetor e matriz local para as alterações não refletirem na matriz original
+	for (int i = 0; i < ordem; i++) {
+		for (int j = 0; j < ordem; j++) {
+			matriz[i][j] = matrizOriginal[i][j];
+			printf("%f ", matriz[i][j]);
+		}
+		b[i] = bOriginal[i];
+	}
 		
 	/* Método de gauss */
 	for (int k = 0; k < n; k++){
@@ -63,7 +75,7 @@ float *gauss(size_t ordem, float **matriz, float b[ordem]) {
 			temp -= (matriz[i][j] * vetorResposta[j]);
 		}
 		vetorResposta[i] = temp / matriz[i][i];
-	}	
+	}
 
     return vetorResposta;
 }  
