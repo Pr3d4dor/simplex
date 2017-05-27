@@ -411,22 +411,32 @@ float *simplex(int tipoProblema, float *funcObjetivo, int numVariaveis,
         nBase[cnk] = aux;
 
         // IMPRIMIR BASE E NBASE AQUI
+		
+		// Liberando memoria e apontando o ponteiro para nulo para evitar dangling pointers
+		free(matriz);
+		free(lambda);
+		free(vetorY);
+		free(bT);
+		matriz = NULL;
+		lambda = NULL;
+		vetorY = NULL;
+		bT = NULL;
     }
+	
+	// Liberando memoria e apontando o ponteiro para nulo para evitar dangling pointers
+	free(matrizFP);
+	matrizFP = NULL;
 
-    float xC[numVarBasicas + numVarNbasicas];
-    printf("\nResultado:\n");
-    for (int i = 0; i < numVarBasicas + numVarBasicas; i++) {
+    float *xC = malloc((numVarBasicas + numVarNbasicas) * sizeof(float));
+    for (int i = 0; i < numVarBasicas + numVarNbasicas; i++) {
         xC[i] = 0;
     }
 
     for (int i = 0; i < numVarBasicas; i++) {
         xC[base[i]] = xB[i];
     }
-    for (int i = 0; i < colMatriz; i++) {
-        printf("xC%d: %f\n", i, xC[i]);
-    }
-
-    return 0;
+	
+	return xC;
 }
 
 int main() {
@@ -477,7 +487,16 @@ int main() {
         scanf("%f", &b[i]);
     }
 
-    simplex(tipo, funcObjetivo, numVariaveis, numRestricoes, matriz, sinalRestricoes, b);
+	float *resultado;
+    resultado = simplex(tipo, funcObjetivo, numVariaveis, numRestricoes, matriz, sinalRestricoes, b);
+	
+    for (int i = 0; i < numVariaveis + numRestricoes; i++) {
+        printf("xC%d: %f\n", i, resultado[i]);
+    }
+	
+	// Liberando memoria e apontando o ponteiro para nulo para evitar dangling pointers
+	free(resultado);
+	resultado = NULL;
 
-    return 0;
+	return 0;
 }
