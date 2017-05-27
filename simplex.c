@@ -412,20 +412,20 @@ float *simplex(int tipoProblema, float *funcObjetivo, int numVariaveis,
 
         // IMPRIMIR BASE E NBASE AQUI
 		
-		// Liberando memoria e apontando o ponteiro para nulo para evitar dangling pointers
-		free(matriz);
-		free(lambda);
-		free(vetorY);
-		free(bT);
-		matriz = NULL;
-		lambda = NULL;
-		vetorY = NULL;
-		bT = NULL;
+	// Liberando memoria e apontando o ponteiro para nulo para evitar dangling pointers
+	free(matriz);
+	free(lambda);
+	free(vetorY);
+	free(bT);
+	matriz = NULL;
+	lambda = NULL;
+	vetorY = NULL;
+	bT = NULL;
     }
 	
-	// Liberando memoria e apontando o ponteiro para nulo para evitar dangling pointers
-	free(matrizFP);
-	matrizFP = NULL;
+    // Liberando memoria e apontando o ponteiro para nulo para evitar dangling pointers
+    free(matrizFP);
+    matrizFP = NULL;
 
     float *xC = malloc((numVarBasicas + numVarNbasicas) * sizeof(float));
     for (int i = 0; i < numVarBasicas + numVarNbasicas; i++) {
@@ -494,9 +494,9 @@ int main() {
         printf("xC%d: %f\n", i, resultado[i]);
     }
 	
-	// Liberando memoria e apontando o ponteiro para nulo para evitar dangling pointers
-	free(resultado);
-	resultado = NULL;
+    // Liberando memoria e apontando o ponteiro para nulo para evitar dangling pointers
+    free(resultado);
+    resultado = NULL;
 
-	return 0;
+    return 0;
 }
