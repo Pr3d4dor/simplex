@@ -20,7 +20,6 @@ float *gauss(size_t ordem, float **matrizOriginal, float bOriginal[ordem]) {
 	for (int i = 0; i < ordem; i++) {
 		for (int j = 0; j < ordem; j++) {
 			matriz[i][j] = matrizOriginal[i][j];
-			printf("%f ", matriz[i][j]);
 		}
 		b[i] = bOriginal[i];
 	}
