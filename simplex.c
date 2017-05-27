@@ -23,17 +23,31 @@ int minVetorY(float *vetorY, float *xB, int tam) {
 
     for (int i = 0; i < tam; i++) {
         if (vetorY[i] > 0) {
-            resultados[i] = xB[i] / vetorY[i];
+            resultados[i] = xB[i] / vetorY[i];	
         }
         else {
-            resultados[i] = -1;
+            resultados[i] = -1.0;
         }
+		printf("resultados %d: %f\n", i, resultados[i]);
     }
 
     int k = 0;
-    float min = resultados[0];   
-    for (int i = 1; i < tam; i++) {
-        if ((resultados[i] < min) && (resultados[i] > 0)) {
+    float min;
+
+	for (int i = 0; i < tam; i++) {
+		if (resultados[i] >= 0.0) {
+			min = resultados[i];
+			k = i;
+			break;
+		}
+	}
+	
+	for (int i = 0; i < tam; i++) {
+		if (resultados[i] < 0.0) {
+			continue;
+		}
+		
+        if (resultados[i] < min) {
             k = i;
             min = resultados[i];
         }
@@ -81,8 +95,16 @@ float multVetor(size_t ordem, float *v1, float *v2) {
 }
 
 // Funcao que cria e retorna a matriz transposta da matriz passada por parametro
-float **criarMatrizTransposta(size_t ordem, float **matriz) {
+float **criarMatrizTransposta(size_t ordem, float **matrizOriginal) {
     float **novaMatriz = (float**)(malloc(ordem * sizeof(float*)));
+	
+	// Copiar para uma matriz local para as alterações não refletirem na matriz original
+	float matriz[ordem][ordem];
+	for (int i = 0; i < ordem; i++) {
+		for (int j = 0; j < ordem; j++) {
+			matriz[i][j] = matrizOriginal[i][j];
+		}
+	}
 
     for (int i = 0; i < ordem; i++) {
         novaMatriz[i] = (float *)(malloc(ordem * sizeof(float)));
@@ -296,7 +318,7 @@ float *simplex(int tipoProblema, float *funcObjetivo, int numVariaveis,
     // Metodo simplex
     int nIteracao = 0;
     bool parar = false;
-    while(!parar) {
+    for (int i = 0; i < 20; i++) {
         nIteracao++;
         printf("\n\nIteracao: %d\n\n", nIteracao);
 
@@ -320,7 +342,7 @@ float *simplex(int tipoProblema, float *funcObjetivo, int numVariaveis,
 
         // Passo 2
         // 2.1
-        printf("Passo 2.1: vetor multiplicador simplex\n");
+        printf("\nPasso 2.1: vetor multiplicador simplex\n");
         // Matriz transposta
         float **bT = criarMatrizTransposta(numVarBasicas, matriz);
 
@@ -353,7 +375,7 @@ float *simplex(int tipoProblema, float *funcObjetivo, int numVariaveis,
 
         // 3
         printf("\nPasso 3: teste de otimalidade\n");
-        if (custosRelativos[cnk] > 0) {
+        if (custosRelativos[cnk] >= 0) {
             parar = true;
             printf("Parou porque cnK > 0\n");
             break;
@@ -362,6 +384,10 @@ float *simplex(int tipoProblema, float *funcObjetivo, int numVariaveis,
         // 4
         printf("\nPasso 4: calculo da direcao simplex\n");
         float *colNbasek = retiraColuna(numVarBasicas, matrizFP, nBase[cnk]);
+		for (int i = 0; i < numVarBasicas; i++) {
+			printf("colNbasek %d: %f\n", i, colNbasek[i]);
+		}
+		
         vetorY = gauss(numVarBasicas, matriz, colNbasek);
         for (int i = 0; i < numVarBasicas; i++) {
             printf("y%d: %f\n", i, vetorY[i]);
@@ -453,5 +479,5 @@ int main() {
 
     simplex(tipo, funcObjetivo, numVariaveis, numRestricoes, matriz, sinalRestricoes, b);
 
-	return 0;
+    return 0;
 }
