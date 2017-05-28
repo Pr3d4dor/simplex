@@ -4,6 +4,20 @@
 #include <math.h>
 #include "gauss.h"
 
+// Funcao que verifica se algum valor esta no vetor passado por parametro
+bool contemValor(size_t tam, int *vet, int valor) {
+	bool resultado = false;
+		
+	for (int i = 0; i < tam; i++) {
+		if (vet[i] == valor) {
+			resultado = true;
+			break;
+		}
+	}
+	
+	return resultado;
+}
+
 // Funcao que verifca a condicao de parada do vetor y
 bool condicaoDeParadaY(float *vetorY, int tam) {
     int count = 0;
@@ -241,7 +255,6 @@ int formaPadraoFuncObj(float funcObjetivo[], int numRestricoes, int numVariaveis
         for (int i = 0; i < numVariaveis; i++) {
             funcObjetivo[i] *= -1;
         }
-        *(tipoProblema) = 2;
     }
 
     for (int i = numVariaveis; i < tam; i++) {
@@ -250,6 +263,209 @@ int formaPadraoFuncObj(float funcObjetivo[], int numRestricoes, int numVariaveis
 
     // Retornar o numero total de variaveis da funcão objetivo na forma padrão
     return tam;
+}
+
+int *simplexFaseI(float *funcObjetivo, int numVariaveis,
+    int numRestricoes, float **matrizOriginalFP,
+    int sinalRestricoes[numRestricoes], float b[numRestricoes]) {
+		
+	int colMatrizArtficial = numVariaveis + numRestricoes;
+	float matrizOriginalLocalFP[numRestricoes][numVariaveis + numRestricoes];
+	
+	for (int i = 0; i < numRestricoes; i++) {
+		for (int j = 0; j < numVariaveis + numRestricoes; j++) {
+			matrizOriginalLocalFP[i][j] = matrizOriginalFP[i][j];
+		}
+	}
+	
+	
+	float funcObjetivoArtificial[colMatrizArtficial];
+	for (int i = 0; i < colMatrizArtficial; i++) {
+		if (i < numVariaveis) {
+			funcObjetivoArtificial[i] = 0;
+		}
+		else{
+			funcObjetivoArtificial[i] = 1;
+		}
+		printf("%f ", funcObjetivoArtificial[i]);
+	}
+	
+	// Criar matriz artificial
+	float **matrizArtificial = (float**)(malloc(numRestricoes * sizeof(float*)));
+	for (int i = 0; i < numRestricoes; i++) {
+        matrizArtificial[i] = (float *)(malloc(colMatrizArtficial * sizeof(float)));
+    }
+	
+	// Copiar os valores da matriz do problema original e colocar as colunas da identidade
+    for (int i = 0; i < numRestricoes; i++) {
+		for (int j = 0; j < numVariaveis; j++) {
+			matrizArtificial[i][j] = matrizOriginalLocalFP[i][j];
+		}
+		int k = numVariaveis + i;
+        matrizArtificial[i][k] = 1;
+	}
+
+    // Zerar o resto
+    for (int i = 0; i < numRestricoes; i++) {
+        for (int j = numVariaveis + numRestricoes; j < colMatrizArtficial; j++) {
+            if (matrizArtificial[i][j] != 1 && matrizArtificial[i][j] != -1) {
+                matrizArtificial[i][j] = 0;
+            }
+        }
+    }
+	
+	// Fase II
+    // Variaveis basicas e nao basicas
+    int numVarBasicas = colMatrizArtficial - numVariaveis;
+    int numVarNbasicas = numVariaveis;
+	int *base = malloc(numVarBasicas * sizeof(int));
+    int nBase[numVarNbasicas];
+
+    // Outras variaveis simplex
+    float *xB;
+    float *lambda;
+    float custosRelativos[numVarNbasicas];
+    float *vetorY;
+    int cnk;
+    int epsilon;
+
+    // Iniciar com as variaveis de folga na base e as restantes serao nao basicas  
+    for (int i = 0; i < numVarNbasicas; i++) {
+        nBase[i] = i;
+    }
+    int indice = 0;
+    for (int i = numVariaveis; i < colMatrizArtficial; i++) {
+        base[indice] = i;
+        indice++;
+    }
+
+    // Prints
+    printf("\nMatriz na artificial FP e vetor b:\n");
+    for (int i = 0; i < numRestricoes; i++) {
+        for (int j = 0; j < colMatrizArtficial; j++) {
+            printf("%.2f ", matrizArtificial[i][j]);
+        }
+        printf("= %.2f", b[i]);
+        printf("\n");
+    }
+
+    printf("\n----- INICIO FASE 1 -------\n");
+	// Metodo simplex
+    int nIteracao = 0;
+    bool parar = false;
+    for (int i = 0; i < 20; i++) {
+        nIteracao++;
+        printf("\n\nIteracao: %d\n\n", nIteracao);
+
+        float **matriz = criarMatriz(numRestricoes, colMatrizArtficial, matrizArtificial, numVarBasicas, base);
+
+        printf("Matriz base:\n");
+        for (int i = 0; i < numVarBasicas; i++) {
+            for (int j = 0; j < numVarBasicas; j++) {
+                printf("%f\t", matriz[i][j]);
+            }
+            printf("\n");
+        }
+
+        // Passo 1
+        printf("\n\nPasso 1: calculo da solucao basica\n");
+        xB = gauss(numVarBasicas, matriz, b);
+
+        for (int i = 0; i < numVarBasicas; i++) {
+            printf("xB%d: %f\n", i, xB[i]);
+        }
+
+        // Passo 2
+        // 2.1
+        printf("\nPasso 2.1: vetor multiplicador simplex\n");
+        // Matriz transposta
+        float **bT = criarMatrizTransposta(numVarBasicas, matriz);
+
+        // Gerar cB
+        float cB[numVarBasicas];
+
+        for (int i = 0; i < numVarBasicas; i++) {
+            int colBase = base[i];
+            cB[i] = funcObjetivoArtificial[colBase];
+        }
+
+        lambda = gauss(numVarBasicas, bT, cB);
+        for (int i = 0; i < numVarBasicas; i++) {
+            printf("lambda %d: %f\n", i, lambda[i]);
+        }
+
+        // 2.2
+        printf("\nPasso 2.2: custos relativos\n");
+        for (int i = 0; i < numVarNbasicas; i++) {
+            float *colNbase = retiraColuna(numVarBasicas, matrizArtificial, nBase[i]);
+            custosRelativos[i] = funcObjetivoArtificial[nBase[i]] - multVetor(numVarBasicas, lambda, colNbase);
+            printf("cN%d: %f\n", i, custosRelativos[i]);
+        }
+
+        // 2.3
+        cnk = minCustoRelativo(custosRelativos, numVarNbasicas);
+
+        printf("\nPasso 2.3: determinacao da variavel a entrar na base\n");
+        printf("cnk: %d\n", cnk);
+
+        // 3
+        printf("\nPasso 3: teste de otimalidade\n");
+        if (custosRelativos[cnk] >= 0) {
+            parar = true;
+            printf("Parou porque cnK > 0\n");
+            break;
+        }
+
+        // 4
+        printf("\nPasso 4: calculo da direcao simplex\n");
+        float *colNbasek = retiraColuna(numVarBasicas, matrizArtificial, nBase[cnk]);
+		for (int i = 0; i < numVarBasicas; i++) {
+			printf("colNbasek %d: %f\n", i, colNbasek[i]);
+		}
+		
+        vetorY = gauss(numVarBasicas, matriz, colNbasek);
+        for (int i = 0; i < numVarBasicas; i++) {
+            printf("y%d: %f\n", i, vetorY[i]);
+        }
+
+        // 5
+        printf("\nPasso 5: determinacao da variavel a sair da base\n");
+        if (condicaoDeParadaY(vetorY, numVarNbasicas)) {
+            parar = true;
+            printf("Parou porque o vetorY <= 0\n");
+            break;
+        }
+        epsilon = minVetorY(vetorY, xB, numVarBasicas);
+        printf("Variavel a sair da base: %d\n", epsilon);
+
+        // 6
+        printf("\nPasso 6: atualizacao, nova particao basica\n");
+
+        int aux = base[epsilon];
+        base[epsilon] = nBase[cnk];
+        nBase[cnk] = aux;
+
+        // IMPRIMIR BASE E NBASE AQUI
+		
+		// Liberando memoria e apontando o ponteiro para nulo para evitar dangling pointers
+		free(matriz);
+		free(lambda);
+		free(vetorY);
+		free(bT);
+		matriz = NULL;
+		lambda = NULL;
+		vetorY = NULL;
+		bT = NULL;
+    }
+	
+	// Liberando memoria e apontando o ponteiro para nulo para evitar dangling pointers
+	free(matrizArtificial);
+	matrizArtificial = NULL;
+	
+	printf("\n----- FIM FASE 1 -------\n");
+	
+	return base;
+	
 }
 
 // Funcao que realiza o algoritmo simplex
@@ -272,15 +488,8 @@ float *simplex(int tipoProblema, float *funcObjetivo, int numVariaveis,
 
     int colFuncObj = formaPadraoFuncObj(funcObjetivo, numRestricoes, numVariaveis, &tipoProblema);
     float** matrizFP = formaPadraoMatriz(numRestricoes, numVariaveis, matrizOriginal, sinalRestricoes);
-
-    // Verificar se precisa de fase I
-    if (precisaFaseI(numRestricoes, sinalRestricoes)) {
-        // Adicionar novas X colunas onde X = numRestricoes
-        // Criar funcao objetivo artificial onde os indices originais sao 0 e os novos sao 1
-        // simplex(tipoProblema, funcObjetivoA, numVariaveis + numRestricoes, numRestricoes, matrizArtificial, b);
-    }
-
-    // Fase II
+	
+	// Fase II
     // Variaveis basicas e nao basicas
     int numVarBasicas = colMatriz - numVariaveis;
     int numVarNbasicas = colMatriz - numRestricoes;
@@ -295,15 +504,46 @@ float *simplex(int tipoProblema, float *funcObjetivo, int numVariaveis,
     int cnk;
     int epsilon;
 
-    // Iniciar com as variaveis de folga na base e as restantes serao nao basicas  
-    for (int i = 0; i < numVarNbasicas; i++) {
-        nBase[i] = i;
+    // Verificar se precisa de fase I
+	bool faseI = precisaFaseI(numRestricoes, sinalRestricoes);
+    if (faseI) {
+        
+		// Adicionar novas X colunas onde X = numRestricoes
+        // Criar funcao objetivo artificial onde os indices originais sao 0 e os novos sao 1
+        int *baseNova = simplexFaseI(funcObjetivo, colMatriz, numRestricoes, matrizFP, sinalRestricoes, b);
+		
+		for (int i = 0; i < numVarBasicas; i++) {
+			base[i] = baseNova[i];
+			if (base[i] > colMatriz) {
+				printf("Problema infactivel!");
+				exit(0);
+			}
+			printf("base[i]: %d\n", base[i]);			
+		}
+		
+		int indice = 0;
+		for (int i = 0; i < colMatriz; i++) {
+			if (!contemValor(numVarBasicas, base, i)) {
+				nBase[indice] = i;
+				printf("nBase[i]: %d\n", i);
+				indice++;
+			}
+			//printf("nBase[i]: %d\n", i);
+		}
     }
-    int indice = 0;
-    for (int i = numVariaveis; i < colMatriz; i++) {
-        base[indice] = i;
-        indice++;
-    }
+
+    // Iniciar com as variaveis de folga na base e as restantes serao nao basicas 
+	// se a fase I não foi executada 
+    if (!faseI) {
+		for (int i = 0; i < numVarNbasicas; i++) {
+			nBase[i] = i;
+		}
+		int indice = 0;
+		for (int i = numVariaveis; i < colMatriz; i++) {
+			base[indice] = i;
+			indice++;
+		}
+	}
 
     // Prints
     printf("\nMatriz na FP e vetor b:\n");
@@ -412,15 +652,15 @@ float *simplex(int tipoProblema, float *funcObjetivo, int numVariaveis,
 
         // IMPRIMIR BASE E NBASE AQUI
 		
-	// Liberando memoria e apontando o ponteiro para nulo para evitar dangling pointers
-	free(matriz);
-	free(lambda);
-	free(vetorY);
-	free(bT);
-	matriz = NULL;
-	lambda = NULL;
-	vetorY = NULL;
-	bT = NULL;
+		// Liberando memoria e apontando o ponteiro para nulo para evitar dangling pointers
+		free(matriz);
+		free(lambda);
+		free(vetorY);
+		free(bT);
+		matriz = NULL;
+		lambda = NULL;
+		vetorY = NULL;
+		bT = NULL;
     }
 	
     // Liberando memoria e apontando o ponteiro para nulo para evitar dangling pointers
@@ -436,9 +676,14 @@ float *simplex(int tipoProblema, float *funcObjetivo, int numVariaveis,
         xC[base[i]] = xB[i];
     }
 	
+	float fx = multVetor(numVarBasicas + numVarNbasicas, xC, funcObjetivo);
+	if (tipoProblema == 1) {
+		fx = -fx;
+	}
+	printf("\nf(x) = %f\n", fx);
+	
 	return xC;
 }
-
 int main() {
 
     // Numero de variaveis e numero de restricoes
@@ -494,9 +739,9 @@ int main() {
         printf("xC%d: %f\n", i, resultado[i]);
     }
 	
-    // Liberando memoria e apontando o ponteiro para nulo para evitar dangling pointers
-    free(resultado);
-    resultado = NULL;
+	// Liberando memoria e apontando o ponteiro para nulo para evitar dangling pointers
+	free(resultado);
+	resultado = NULL;
 
-    return 0;
+	return 0;
 }
