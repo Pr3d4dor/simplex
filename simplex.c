@@ -344,7 +344,7 @@ int *simplexFaseI(float *funcObjetivo, size_t numVariaveis,
 	// Metodo simplex
     int nIteracao = 0;
     bool parar = false;
-    for (int i = 0; i < 20; i++) {
+    while(!parar) {
         nIteracao++;
         printf("\n\nIteracao: %d\n\n", nIteracao);
 
@@ -559,7 +559,7 @@ float *simplex(int tipoProblema, float *funcObjetivo, size_t numVariaveis,
     // Metodo simplex
     int nIteracao = 0;
     bool parar = false;
-    for (int i = 0; i < 20; i++) {
+    while(!parar) {
         nIteracao++;
         printf("\n\nIteracao: %d\n\n", nIteracao);
 
